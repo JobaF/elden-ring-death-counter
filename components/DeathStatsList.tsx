@@ -1,15 +1,9 @@
-import { Button } from "@/components/ui/button"
-import { Trash2 } from "lucide-react"
-
 interface DeathStatsListProps {
 	deathCounts: { [key: string]: number }
 	onResetAllCounts: () => void
 }
 
-export function DeathStatsList({
-	deathCounts,
-	onResetAllCounts,
-}: DeathStatsListProps) {
+export function DeathStatsList({ deathCounts }: DeathStatsListProps) {
 	return (
 		<div className="w-full">
 			<h3 className="text-lg font-semibold mb-2">All Death Counts:</h3>
@@ -24,13 +18,6 @@ export function DeathStatsList({
 						</li>
 					))}
 			</ul>
-			{/* <Button
-				onClick={onResetAllCounts}
-				variant="destructive"
-				className="w-full"
-			>
-				<Trash2 className="mr-2 h-4 w-4" /> Reset All Counts
-			</Button> */}
 		</div>
 	)
 }

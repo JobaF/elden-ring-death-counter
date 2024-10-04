@@ -1,9 +1,9 @@
 import sqlite3 from "sqlite3"
-import { open } from "sqlite"
+import { open, Database } from "sqlite"
 
-let db: any = null
+let db: Database | null = null
 
-export async function openDb() {
+export async function openDb(): Promise<Database> {
 	if (!db) {
 		db = await open({
 			filename: "./elden_ring_deaths.sqlite",
@@ -22,12 +22,19 @@ export async function openDb() {
 	return db
 }
 
-export async function getDeathCounts() {
-	const db = await openDb()
-	return db.all("SELECT boss, count FROM deaths ORDER BY count DESC")
+interface DeathCount {
+	boss: string
+	count: number
 }
 
-export async function incrementDeathCount(boss: string) {
+export async function getDeathCounts(): Promise<DeathCount[]> {
+	const db = await openDb()
+	return db.all<DeathCount[]>(
+		"SELECT boss, count FROM deaths ORDER BY count DESC"
+	)
+}
+
+export async function incrementDeathCount(boss: string): Promise<void> {
 	const db = await openDb()
 	await db.run(
 		`
@@ -39,22 +46,22 @@ export async function incrementDeathCount(boss: string) {
 	)
 }
 
-export async function resetAllCounts() {
+export async function resetAllCounts(): Promise<void> {
 	const db = await openDb()
 	await db.run("DELETE FROM deaths")
 }
 
-export async function decrementDeathCount(boss: string) {
+export async function decrementDeathCount(boss: string): Promise<void> {
 	const db = await openDb()
 	await db.run(
 		`
-      UPDATE deaths 
-      SET count = CASE
-        WHEN count > 0 THEN count - 1
-        ELSE 0
-      END
-      WHERE boss = ?
-    `,
+    UPDATE deaths 
+    SET count = CASE
+      WHEN count > 0 THEN count - 1
+      ELSE 0
+    END
+    WHERE boss = ?
+  `,
 		boss
 	)
 }

@@ -4,10 +4,12 @@ import {
 	incrementDeathCount,
 	decrementDeathCount,
 	resetAllCounts,
+	initializeDatabase,
 } from "@/lib/db"
 
 export async function GET() {
 	try {
+		await initializeDatabase()
 		const deaths = await getDeathCounts()
 		return NextResponse.json(deaths)
 	} catch (error) {
@@ -39,6 +41,7 @@ export async function POST(request: Request) {
 		)
 	}
 }
+
 export async function DELETE() {
 	try {
 		await resetAllCounts()

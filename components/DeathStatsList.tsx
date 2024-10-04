@@ -1,9 +1,13 @@
 interface DeathStatsListProps {
 	deathCounts: { [key: string]: number }
 	onResetAllCounts: () => void
+	isUpdating: boolean
 }
 
-export function DeathStatsList({ deathCounts }: DeathStatsListProps) {
+export function DeathStatsList({
+	deathCounts,
+	isUpdating,
+}: DeathStatsListProps) {
 	return (
 		<div className="w-full">
 			<h3 className="text-lg font-semibold mb-2">All Death Counts:</h3>
@@ -18,6 +22,9 @@ export function DeathStatsList({ deathCounts }: DeathStatsListProps) {
 						</li>
 					))}
 			</ul>
+			{isUpdating && (
+				<p className="text-sm text-gray-500 mt-2 text-center">Updating...</p>
+			)}
 		</div>
 	)
 }

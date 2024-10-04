@@ -39,6 +39,7 @@ export default function Home() {
 	const [deathCounts, setDeathCounts] = useState<{ [key: string]: number }>({})
 	const [selectedBoss, setSelectedBoss] = useState(ELDEN_RING_BOSSES[0])
 	const [customBoss, setCustomBoss] = useState("")
+	const [isUpdating, setIsUpdating] = useState(false)
 
 	useEffect(() => {
 		if (isAuthenticated) {
@@ -49,20 +50,50 @@ export default function Home() {
 	const fetchDeathCounts = async () => {
 		const response = await fetch("/api/deaths")
 		const data = await response.json()
-		const counts: { [key: string]: number } = {}
-		data.forEach((item: { boss: string; count: number }) => {
-			counts[item.boss] = item.count
-		})
-		setDeathCounts(counts)
+		setDeathCounts(
+			Object.fromEntries(
+				data.map((item: { boss: string; count: number }) => [
+					item.boss,
+					item.count,
+				])
+			)
+		)
 	}
+
 	const updateDeathCount = async (action: "increment" | "decrement") => {
 		const bossToUpdate = customBoss || selectedBoss
-		await fetch("/api/deaths", {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ boss: bossToUpdate, action }),
-		})
-		fetchDeathCounts()
+
+		// Optimistic update
+		setDeathCounts((prev) => ({
+			...prev,
+			[bossToUpdate]: Math.max(
+				(prev[bossToUpdate] || 0) + (action === "increment" ? 1 : -1),
+				0
+			),
+		}))
+
+		setIsUpdating(true)
+
+		try {
+			const response = await fetch("/api/deaths", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ boss: bossToUpdate, action }),
+			})
+
+			if (!response.ok) {
+				throw new Error("Failed to update death count")
+			}
+
+			// Fetch the latest counts to ensure consistency
+			await fetchDeathCounts()
+		} catch (error) {
+			console.error("Error updating death count:", error)
+			// Revert the optimistic update
+			await fetchDeathCounts()
+		} finally {
+			setIsUpdating(false)
+		}
 	}
 
 	const incrementDeathCount = () => updateDeathCount("increment")
@@ -77,8 +108,22 @@ export default function Home() {
 	}
 
 	const resetAllCounts = async () => {
-		await fetch("/api/deaths", { method: "DELETE" })
-		fetchDeathCounts()
+		// Optimistic update
+		setDeathCounts({})
+		setIsUpdating(true)
+
+		try {
+			const response = await fetch("/api/deaths", { method: "DELETE" })
+			if (!response.ok) {
+				throw new Error("Failed to reset death counts")
+			}
+		} catch (error) {
+			console.error("Error resetting death counts:", error)
+			// Revert the optimistic update
+			await fetchDeathCounts()
+		} finally {
+			setIsUpdating(false)
+		}
 	}
 
 	const currentBoss = customBoss || selectedBoss
@@ -115,6 +160,7 @@ export default function Home() {
 							currentDeathCount={currentDeathCount}
 							onIncrementDeathCount={incrementDeathCount}
 							onDecrementDeathCount={decrementDeathCount}
+							isUpdating={isUpdating}
 						/>
 					</div>
 				</CardContent>
@@ -122,6 +168,7 @@ export default function Home() {
 					<DeathStatsList
 						deathCounts={deathCounts}
 						onResetAllCounts={resetAllCounts}
+						isUpdating={isUpdating}
 					/>
 				</CardFooter>
 			</Card>
